@@ -38,9 +38,9 @@ jobs:
     runs-on: [self-hosted]
     steps:
       - name: Pull image from docker hub
-        run: docker pull ${{ secrets.DOCKER_USERNAME }}/spring-boot-docker:latest
+        run: docker pull southhn97/spring-boot-docker:latest
       - name: Remove old container
         run: docker rm -f springboot-ec2-cicd
       - name: Run docker container
-        run: docker run -d -p 8080:8080 --name springboot-ec2-cicd ${{ secrets.DOCKER_USERNAME }}/spring-boot-docker:latest
+        run: docker run -d -p 8080:8080 --name springboot-ec2-cicd southhn97/spring-boot-docker:latest
 
