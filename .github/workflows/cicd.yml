@@ -11,25 +11,36 @@ name: Java CI with Maven
 on:
   push:
     branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Set up Java
+      uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn clean install -DskipTests
+    - name: Login docker hub
+      run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+    - name: Build docker image
+      run: docker build -t ${{ secrets.DOCKER_USERNAME }}/spring-boot-docker .
+    - name: Push docker image
+      run: docker push ${{ secrets.DOCKER_USERNAME }}/spring-boot-docker:latest
 
-    # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-    - name: Update dependency graph
-      uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
+  deploy:
+    needs: build
+    runs-on: [ip-172-31-25-7]
+    steps:
+      - name: Pull image from docker hub
+        run: docker pull ${{ secrets.DOCKER_USERNAME }}/spring-boot-docker:latest
+      - name: Remove old container
+        run: docker rm -f springboot-ec2-cicd
+      - name: Run docker container
+        run: docker run -d -p 8080:8080 --name springboot-ec2-cicd ${{ secrets.DOCKER_USERNAME }}/spring-boot-docker:latest
+
